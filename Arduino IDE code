@@ -4,7 +4,15 @@
 //in Tools I have IP/Bluetooth stack set to IPv4 + Bluetooth
 //in Tools I have Flash size set to 4MB(Sketch 2MB FS 2MB )
 
+//Tested version of board is here https://oshpark.com/shared_projects/scDfyYnd
+//Tested version of phototransistor board is hered https://oshpark.com/shared_projects/rQflS270
 
+
+//Beta version of board is here https://oshpark.com/shared_projects/tErOh6uE
+//Beta phototransistor board is here https://oshpark.com/shared_projects/tjg3CdkS
+
+//playlist showing soldering and setup is here
+//https://www.youtube.com/playlist?list=PLevqZFjlWIdexYMa2yQZgw0dfLVjzN8m7
 
 
 #include "LittleFS.h"
@@ -23,6 +31,7 @@ String password = "noodalls";
 
 
 String whole_url = "";
+int detailed_graphics = 0;
 
 WiFiServer server(80);
 float website_refresh = 30;
@@ -36,13 +45,23 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 String OLED_message1 = "";
 String OLED_message2 = "";
 String OLED_message3 = "";
+String OLED_message4 = "";
+String OLED_message5 = "";
+String OLED_message6 = "";
+String OLED_message7 = "";
 int warning_message_issued = 0;
 int mode = 0;
 int cursor_position = 0;
 int initial_cursor_position = 1;
 
 int youvegotmail = 0;
-float youvegotemail = 0.0;
+String youvegotemail = "0.0";
+
+int int_val = 0;
+float float_val = 0.0;
+
+
+
 char abc=' ';
 uint8_t PTmain_decimal[10000];
 uint8_t PTsub_decimal[10000];
@@ -60,9 +79,10 @@ float PTsub_fastest = 0.0;
 float PTmain_slowest = 999.9;
 float PTsub_slowest = 999.9;
 
+int save_mode = 0; //0 = save results, 1 = don't save results
 int calculate_mode = 0;//0 = Phototransistor known, 1 = phototransistor calc, 2 = phototransistor compare
-int fastest_slowest_mode = 0;
-int only_one_test = 0;
+int fastest_slowest_mode = 0; //1 = only use fastest and slowest results when calculating averages
+int only_one_test = 0; //1 = test once at a time
 
 float upper = 92;
 float lower = 92;
@@ -114,8 +134,8 @@ int REPORT_TIME = 250;
 int query_time = 100;
 int QUIT_TIME = 499;
 
-int PTmain = 28;
-int PTsub = 26;
+int PTmain = 28;int PTsub = 26;
+//int PTmain = 28; int PTsub = 26; //4/2026
 
 float PTmain_time = 0;
 float PTsub_time = 0;
@@ -132,16 +152,12 @@ int P1_P2_draw = 0;
 
 int startPos = 0;
 int endPos = 0;
+// int LEFT = 6;//int RIGHT = 7;//int OK = 8;//int CANCEL = 9;  //4/2026
 
+int LEFT = 18;int RIGHT = 19;int CONFIRM = 16;int CANCEL = 17;
 
-int LEFT = 18;
-int RIGHT = 19;
-int CONFIRM = 16;
-int CANCEL = 17;
-
-int BLUE_LED = 16;
-int GREEN_LED = 19;
-int RED_LED = 18;
+int BLUE_LED = 18;int GREEN_LED = 16;int RED_LED = 19;
+//int BLUE_LED = 6; int GREEN_LED = 7; int RED_LED = 8; // 4/2026
 
 
 //int PPS = 22;
@@ -168,59 +184,41 @@ int output_reset_state[] = {1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1};
 //int OUTPUT_BUTTONS[] = { 15,14,13,12,11,10,9,8,7,6,3,2,20,21};
 int OUTPUT_BUTTONS[]={15, 14, 13, 12, 11, 10, 9,8,7,6,3,2,21,20,22};
 // DULR 1p2p3p4p 1k2k3k4k se ho st
+//int OUTPUT_BUTTONS[] = {21,10,20,11, 19,12,18,13, 14,17,15,16, 22,22,22}         //4.2026
 
 
 String serial_titles[] = { "DOWN_ON", "UP_ON", "LEFT_ON", "RIGHT_ON", "1P_ON", "2P_ON", "3P_ON", "4P_ON", "1K_ON", "2K_ON", "3K_ON", "4K_ON", "SE_ON", "HO_ON","ST_ON",
                            "down_off", "up_off", "left_off", "right_off", "1p_off", "2p_off", "3p_off", "4p_off", "1k_off", "2k_off", "3k_off", "4k_off", "se_off", "ho_off","st_off",
-                           "trial_number", "TRIAL_MAX", "read_time", "REPORT_TIME", "query_time", "QUIT_TIME", "under", "OVER", "players", "1P2PCOMP", "Initial cursor", "fastest_slowest_mode","only_one_test" };
+                           "trial_number", "TRIAL_MAX", "read_time", "REPORT_TIME", "query_time", "QUIT_TIME", 
+                           "under", "OVER", "players", "1P2PCOMP", "Initial cursor", "fastest_slowest_mode","only_one_test","calculate_mode","save_data" };
 
 String float_serial_titles[] = {
-  "upper_value",
-  "lower_value",
-  "top_of_screen",
-  "bottom_of_screen",
-  "screen_hz",
-  "screen_time_ms",
-};
+  "upper_value",  "lower_value",  "top_of_screen",  "bottom_of_screen",  "screen_hz",  "screen_time_ms"};
 
 char float_serial_names[] = {
-  'w',
-  'W',
-  's',
-  'S',
-  'x',
-  'X',
-};
+  'w',  'W',  's',  'S',  'x',  'X'};
 
 char serial_names[] = {
   'A',  'B',  'C',  'D',  'E',  'F',  'G',  'H',  'I',  'J',  'K',  'L',  'M',  'N', 'O',
   'a',  'b',  'c',  'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm',  'n', 'o',
-  't',
-  'T',
-  'r',
-  'R',
-  'q',
-  'Q',
-  'u',
-  'U',
-  'p',
-  'P',
-  'z',
-  '!',
-  '@'
+  't',  'T',  'r',  'R',  'q',  'Q',  
+  'u',  'U',  'p',  'P',  'z',  '!',  '@',  '_',  '`'
 };
 
 
 
 int min_list[] = { -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5,
                    -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5,
-                   -1, 10, 1, 1, 1, 1, 0, 0, 0, 0, -20, 0, 0};
+                   -1, 10, 1, 1, 1, 1, 
+                   0, 0, 0, 0, -20, 0, 0, 0,0};
 
 int max_list[] = { 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999,
                    999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999, 999,
-                   999, 999, 999, 999, 999, 1999, 50, 50, 2, 50, 60, 1, 1 };
+                   999, 1000, 999, 1999, 999, 1999, 
+                   50, 50, 2, 50, 60, 1, 1, 2, 1};
 
-//  &trial_number,  &TRIAL_MAX,  &read_time,  &REPORT_TIME,  &query_time,  &QUIT_TIME,  &under,  &OVER,  &player,  &PLAY1P2P,  &initial_cursor_position,  &fastest_slowest_mode,  &only_one_test
+//  &trial_number,  &TRIAL_MAX,  &read_time,  &REPORT_TIME,  &query_time,  &QUIT_TIME,  
+//  &under,  &OVER,  &player,  &PLAY1P2P,  &initial_cursor_position,  &fastest_slowest_mode,  &only_one_test, &calculate_mode, &save_mode
 int *pointers[] = {
   &OUTPUT_ON_TIME[0],
   &OUTPUT_ON_TIME[1],
@@ -254,7 +252,7 @@ int *pointers[] = {
   &output_off_time[13],
   &output_off_time[14],
 
-  &trial_number,  &TRIAL_MAX,  &read_time,  &REPORT_TIME,  &query_time,  &QUIT_TIME,  &under,  &OVER,  &player,  &PLAY1P2P,  &initial_cursor_position,  &fastest_slowest_mode,  &only_one_test
+  &trial_number,  &TRIAL_MAX,  &read_time,  &REPORT_TIME,  &query_time,  &QUIT_TIME,  &under,  &OVER,  &player,  &PLAY1P2P,  &initial_cursor_position,  &fastest_slowest_mode,  &only_one_test, &calculate_mode, &save_mode
 };
 
 float *float_pointers[] = {
@@ -271,8 +269,8 @@ int float_length_array = sizeof(float_serial_names) / sizeof(float_serial_names[
 
 void prepare_summary() {
   for (int variable = 0; variable < 255; variable++) {
-    PTmain_summary[variable] = 0;
-    PTsub_summary[variable] = 0;
+    PTmain_summary[variable] = 0;//***
+    PTsub_summary[variable] = 0;//***
   }
   File writesummary = LittleFS.open("/summary.txt", "w");
   for (int variable = 0; variable < length_array; variable++) {
@@ -285,6 +283,10 @@ void prepare_summary() {
   }
 
   writesummary.close();
+
+
+  
+  
 }
 
 void connect_sub_board(){
@@ -294,34 +296,27 @@ void connect_sub_board(){
 }
 
 void save_summary() {
-  File writesummary = LittleFS.open("/summary.txt", "a");
-  writesummary.print("u");
-  writesummary.print(",");
-  writesummary.print(trial_number);
-  writesummary.print(",");
+  File writeraw = LittleFS.open("/raw.txt", "a");
+  writeraw.print("u");  
+  writeraw.print(trial_number);
+  writeraw.print("=");
   for (int variable = 0; variable < 255; variable++) {
-    writesummary.print(PTmain_summary[variable]);
-    writesummary.print(",");
+    writeraw.print(PTmain_summary[variable]);
+    writeraw.print(",");
   }
-  writesummary.println();
-  writesummary.print("v");
-  writesummary.print(",");
-  writesummary.print(trial_number);
-  writesummary.print(",");
+  writeraw.println();
+  writeraw.print("v");  
+  writeraw.print(trial_number);
+  writeraw.print("=");
   for (int variable = 0; variable < 255; variable++) {
-    writesummary.print(PTsub_summary[variable]);
-    writesummary.print(",");
+    writeraw.print(PTsub_summary[variable]);
+    writeraw.print(",");
   }
-  writesummary.println();
+  writeraw.println();
 
 
-  writesummary.close();
+  writeraw.close();
 
-
-  for (int variable = 0; variable < 255; variable++) {
-    PTmain_summary[variable] = 0;
-    PTsub_summary[variable] = 0;
-  }
 }
 
 void calculate_screen_time() {//consider if upper == lower then set calculate_mode to 2
@@ -407,18 +402,25 @@ void display_screen() {
 
   if (cursor_position == 9) { display.println("Test_max"); }
   if (cursor_position == 10) { display.println("Non PT tests"); }
-  if (cursor_position == 12) { display.println("Please check that    phototransistors are correctly attached"); }
+  
 
 
 if (cursor_position == 0){
-  display.setCursor(0,16);display.print(OLED_message1);
-display.setCursor(0,32);display.print(OLED_message2);
+    display.setCursor(0, 8);display.print(OLED_message1);
+    display.setCursor(0,16);display.print(OLED_message2);
+    display.setCursor(0,24);display.print(OLED_message3);
+    display.setCursor(0,32);display.print(OLED_message4);
+    display.setCursor(0,40);display.print(OLED_message5);
+    display.setCursor(0,48);display.print(OLED_message6);
+    display.setCursor(0,56);display.print(OLED_message7);
+
 //if (wifimode == 0){OLED_message3 = WiFi.softAPIP().toString();};
-display.setCursor(0,48);display.print(OLED_message3);
+
 }
 
   if (fastest_slowest_mode == 1){display.setCursor(120,0);display.print("!");}
     if (only_one_test == 1){display.setCursor(116,0);display.print("@");}
+    if (save_mode == 1){display.setCursor(112,0);display.print("`");}
 
   if (cursor_position == -1) {
     display.setCursor(0, 56);display.print(trial_number);display.print("/");display.print(TRIAL_MAX);    
@@ -942,6 +944,9 @@ void create_sheet() {
 
 
 void reset_all_values() {
+  File writeraw = LittleFS.open("/raw.txt", "w"); //this will reset raw.txt to nothing  
+  writeraw.close();
+
   trial_number = 0;
   for (int variable = 0; variable < 10000; variable++) {
     PTmain_decimal[variable] = 0;
@@ -1018,10 +1023,12 @@ void inbox(){
   if (char(youvegotmail) == '%'){ current_button = 5; }
   if (char(youvegotmail) == '&'){ current_button = 4; }
   if (char(youvegotmail) == '*'){ current_button = 6; }
+
+  //if(char(youvegotmail)=='_'){Serial.print("ready");Serial.println(mode);}
   
 
-  if(char(youvegotmail) == 'y'){cursor_position = youvegotemail;}
-  if(char(youvegotmail) == 'Y'){cursor_position = youvegotemail;current_button = 5;}
+  if(char(youvegotmail) == 'y'){cursor_position = youvegotemail.toFloat();}
+  if(char(youvegotmail) == 'Y'){cursor_position = youvegotemail.toFloat();current_button = 5;}
   
   if(char(youvegotmail) == '?'){
     for (int variable = 0; variable < length_array; variable++) {
@@ -1039,8 +1046,8 @@ void inbox(){
   
   for (int variable = 0;variable < 15; variable++){//change to 15 in next update
   if(char(youvegotmail) == serial_names[variable]){
-    if((youvegotemail >= min_list[variable]) && (youvegotemail <= max_list[variable])){
-    *pointers[variable] = youvegotemail;
+    if((youvegotemail.toInt() >= min_list[variable]) && (youvegotemail.toInt() <= max_list[variable])){
+    *pointers[variable] = youvegotemail.toInt();
     SerialBT.print(serial_names[variable]);SerialBT.println(*pointers[variable]);}
     if (*pointers[variable] == 0) {
     *pointers[variable + 15] = -5;
@@ -1051,8 +1058,8 @@ void inbox(){
   
   for (int variable = 15; variable < 30; variable++) {//change to 15-30 in next update
   if(char(youvegotmail) == serial_names[variable]){
-    if((youvegotemail >= min_list[variable]) && (youvegotemail <= max_list[variable])){
-      *pointers[variable] = youvegotemail;
+    if((youvegotemail.toInt() >= min_list[variable]) && (youvegotemail.toInt() <= max_list[variable])){
+      *pointers[variable] = youvegotemail.toInt();
       SerialBT.print(serial_names[variable]);SerialBT.println(*pointers[variable]);}
       if (*pointers[variable] == 0) {
       *pointers[variable - 15] = -5;
@@ -1062,15 +1069,15 @@ void inbox(){
 
   for (int variable = 30; variable < length_array; variable++) {  
     if(char(youvegotmail) ==  serial_names[variable]) {
-      if((youvegotemail >= min_list[variable]) && (youvegotemail <= max_list[variable])){
-    *pointers[variable] = youvegotemail;
+      if((youvegotemail.toInt() >= min_list[variable]) && (youvegotemail.toInt() <= max_list[variable])){
+    *pointers[variable] = youvegotemail.toInt();
     Serial.print(serial_names[variable]);Serial.println(*pointers[variable]);
     save_settings();}
   }}
 
     for (int variable = 0; variable < float_length_array; variable++) {
     if (char(youvegotmail) == float_serial_names[variable]) {
-    *float_pointers[variable] = youvegotemail;
+    *float_pointers[variable] = youvegotemail.toFloat();
     if (upper < 0) { upper = 100 * (abs(upper) - top_of_screen) / (bottom_of_screen - top_of_screen); }
     if (lower < 0) { lower = 100 * (abs(lower) - top_of_screen) / (bottom_of_screen - top_of_screen); }
     SerialBT.print(float_serial_names[variable]);SerialBT.println(*float_pointers[variable]);
@@ -1078,7 +1085,7 @@ void inbox(){
     }}
 
 youvegotmail = 0;
-youvegotemail = 0.0;
+youvegotemail = "";
 }
 }
 
@@ -1116,14 +1123,13 @@ void setup() {
 
   PTmain_current = analogRead(PTmain) / 4;
   PTsub_current = analogRead(PTsub) / 4;
-  if (PTmain_current == 4){cursor_position = 2;}
-  if ((PTsub_current == 4) && (cursor_position == 2)){cursor_position = 12;}
+  if (PTmain_current == 4){OLED_message4 = "Check PT_main";}
+  if ((PTsub_current == 4) && (OLED_message4 == "Check PT_main")){OLED_message5 = "Check PT_sub";}
 
   if (digitalRead(CANCEL) == 0) { save_settings(); cursor_position = -4;last_button = 1;}  // by doing this we can reset to default
   
   if (digitalRead(RIGHT) == 1){//unpressed
 //load password
-
 
   File password_load = LittleFS.open("/password.txt", "r");  // Open for reading
   if (password_load) {
@@ -1139,14 +1145,12 @@ void setup() {
       Serial.println(password);
       wifimode = 1;
 }}
-password_load.close();
-
-}
+password_load.close();}
 
   
-  if (digitalRead(RIGHT) == 0){wifimode = 0; // force AP mode if password change etc. needed
-   
-  };//pressed
+  if (digitalRead(RIGHT) == 0){wifimode = 0;} // force AP mode if password change etc. needed
+   //pressed
+  
 if (wifimode == 1){
   //Serial.print(ssid);
   //Serial.print(password);
@@ -1182,10 +1186,9 @@ OLED_message3 = WiFi.softAPIP().toString();
   
   load_settings();
   
-  // if (digitalRead(RIGHT)==0){
-  //   connect_sub_board();
-  //   initial_cursor_position = 10;cursor_position = 10;last_button = 6;
-  //   }
+  if (digitalRead(LEFT)==0){
+    connect_sub_board();//   
+    }
 
   
   
@@ -1213,6 +1216,7 @@ OLED_message3 = WiFi.softAPIP().toString();
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setRotation(0);
+  //display.setRotation(2); //4/2026
   trial_number = 0;
 
 
@@ -1221,8 +1225,8 @@ OLED_message3 = WiFi.softAPIP().toString();
     PTsub_decimal[variable] = 0;
   }
   for (int variable = 0; variable < 255; variable++) {
-    PTmain_summary[variable] = 0;
-    PTsub_summary[variable] = 0;
+    PTmain_summary[variable] = 0;//***
+    PTsub_summary[variable] = 0;//***
   }
 }
 
@@ -1242,8 +1246,8 @@ void loop() {
     PTmain_current = analogRead(PTmain) / 4;
     PTsub_current = analogRead(PTsub) / 4;
     elapsed_time = (time1 - time3);
-    if (PTmain_summary[PTmain_current] == 0) { PTmain_summary[PTmain_current] = elapsed_time; }
-    if (PTsub_summary[PTsub_current] == 0) { PTsub_summary[PTsub_current] = elapsed_time; }
+    if (PTmain_summary[PTmain_current] == 0) { PTmain_summary[PTmain_current] = elapsed_time_ms; }//***
+    if (PTsub_summary[PTsub_current] == 0) { PTsub_summary[PTsub_current] = elapsed_time_ms; }//***
     elapsed_time_ms = elapsed_time / 10;
     if (digitalRead(CANCEL) == 0) {
       current_button = 1;
@@ -1256,51 +1260,7 @@ void loop() {
       pinMode(RIGHT, INPUT_PULLUP);
       pinMode(CONFIRM, INPUT_PULLUP);
     }
-    if (mode == 2){
-      for (int variable = 0; variable < 15; variable++) {
-        if (elapsed_time_ms == OUTPUT_ON_TIME[variable]) { digitalWrite(OUTPUT_BUTTONS[variable], OUTPUT_ON_STATE[variable]); }    //buttons on
-        if (elapsed_time_ms == output_off_time[variable]) { digitalWrite(OUTPUT_BUTTONS[variable], output_off_state[variable]); }  //buttons_off        
-      }
-
-      if (elapsed_time_ms == REPORT_TIME) {
-        display_screen();
-        trial_number = trial_number + 1;
-        
-        if (Serial.available() > 0){
-        youvegotmail = Serial.read();}
-        //youvegotemail = Serial.parseInt();}
-        //Serial.println(char(youvegotmail));
-        //Serial.println(youvegotemail);
-
-        if (SerialBT.available() > 0){
-        youvegotmail = SerialBT.read();}
-        //youvegotemail = SerialBT.parseInt();}
-
-
-
-        
-        if (char(youvegotmail) == '$'){
-            digitalWrite(RED_LED, LOW);
-            digitalWrite(GREEN_LED, LOW);
-            digitalWrite(BLUE_LED, LOW);
-            pinMode(LEFT, INPUT_PULLUP);
-            pinMode(RIGHT, INPUT_PULLUP);
-            pinMode(CONFIRM, INPUT_PULLUP);
-        mode = 0;youvegotmail = 0;youvegotemail = 0;}
-
-
-          
-          }
-
-      if (elapsed_time_ms >= QUIT_TIME) {
-        if (only_one_test==1) { 
-          mode = 0;}
-          reset_OPT_values();
-          time3 = 1 + micros() / 100;}
-
-      if (trial_number == TRIAL_MAX) {
-          mode = 0;}            
-      }
+    
     
     
     if (mode == 1) {
@@ -1358,7 +1318,10 @@ void loop() {
           calculate_averages();
           calculate_screen_time();
           calculate_winners();
-          save_summary();
+          if ((save_mode == 0) && (trial_number < TRIAL_MAX)){save_summary();}
+          for (int variable = 0; variable < 255; variable++) {
+          PTmain_summary[variable] = 0;//***
+          PTsub_summary[variable] = 0;}//***
         }
         if (cursor_position == 8) {//PT comp
           if ((PTmain_results[trial_number] != 0) && (PTsub_results[trial_number] != 0)) {
@@ -1385,11 +1348,6 @@ void loop() {
         youvegotmail = SerialBT.read();}
        
 
-
-//HTML REPORT
-website_refresh=5.00;
-
-//HTML REPORT
         if (char(youvegotmail) == '$'){
             digitalWrite(RED_LED, LOW);
             digitalWrite(GREEN_LED, LOW);
@@ -1397,7 +1355,7 @@ website_refresh=5.00;
             pinMode(LEFT, INPUT_PULLUP);
             pinMode(RIGHT, INPUT_PULLUP);
             pinMode(CONFIRM, INPUT_PULLUP);
-        mode = 0;youvegotmail = 0;youvegotemail = 0;}
+        mode = 0;youvegotmail = 0;youvegotemail = "";}
 
 trial_number = trial_number + 1;
         
@@ -1416,7 +1374,7 @@ trial_number = trial_number + 1;
           pinMode(LEFT, INPUT_PULLUP);
           pinMode(RIGHT, INPUT_PULLUP);
           pinMode(CONFIRM, INPUT_PULLUP);
-          mode = 0;
+          mode = 0;detailed_graphics = 1;
         }
         //if (cursor_position == -1){trial_number = trial_number -1;mode = 11;}
 
@@ -1456,13 +1414,14 @@ trial_number = trial_number + 1;
           pinMode(LEFT, INPUT_PULLUP);
           pinMode(RIGHT, INPUT_PULLUP);
           pinMode(CONFIRM, INPUT_PULLUP);
-          mode = 0;
+          mode = 0;detailed_graphics = 1;
         // }
       }
     }
 
     if (mode == -1) {
-      //trial_number = min (trial_number, TRIAL_MAX -1);
+      /// BUTTON INPUTS HERE
+      
       current_button = 0;
       if (digitalRead(LEFT) == 0) { current_button = 4; }
       if (digitalRead(RIGHT) == 0) { current_button = 6; }
@@ -1561,10 +1520,15 @@ trial_number = trial_number + 1;
 
 
       current_button = 0;
+      if (digitalRead(CANCEL) == 0) { current_button = 1; }
       if (digitalRead(LEFT) == 0) { current_button = 4; }
       if (digitalRead(RIGHT) == 0) { current_button = 6; }
       if (digitalRead(CONFIRM) == 0) { current_button = 5; }
-      if (digitalRead(CANCEL) == 0) { current_button = 1; }
+
+      if((current_button == 4) && (last_button == 1)){current_button = 11;save_mode = !save_mode;delay(300);}
+      if((current_button == 6) && (last_button == 1)){current_button = 11;only_one_test = !only_one_test;delay(300);}
+      if((current_button == 5) && (last_button == 1)){current_button = 11; fastest_slowest_mode = !fastest_slowest_mode;delay(300);}
+      
       if ((digitalRead(CONFIRM) == 0) && (digitalRead(RIGHT) == 0)) { current_button = 10; }
       
 
@@ -1591,11 +1555,11 @@ trial_number = trial_number + 1;
 
 if (Serial.available() > 0){
   youvegotmail=Serial.read();
-  youvegotemail=Serial.parseInt();}
+  youvegotemail =  Serial.readStringUntil('\n');youvegotemail.trim();}
 
 if (SerialBT.available() > 0){
   youvegotmail = SerialBT.read();
-  youvegotemail = SerialBT.parseFloat();}
+  youvegotemail =  SerialBT.readStringUntil('\n');youvegotemail.trim();}
 
 
 
@@ -1606,180 +1570,370 @@ inbox();
 
 WiFiClient client = server.accept();
 if (client) {
-    whole_url="";
-    Serial.println("New browser request.");
-    String currentLine = "";
-    
-    while (client.connected()) {
-      if (client.available()) {
-        char c = client.read();
-        whole_url+=c;
-        
-        if (c == '\n') {
+  whole_url="";
+  Serial.println("New browser request.");
+  String currentLine = "";
 
-    if (whole_url.indexOf("favicon") <0){
-      if(whole_url.indexOf("/?val") >=0){
-        startPos = whole_url.indexOf("val=")+4;
-        endPos = whole_url.indexOf('&',startPos);
-        String ssid = whole_url.substring(startPos,endPos);
-        Serial.println("ssid");
-        Serial.println(ssid);
+  while (client.connected()) {
+  if (client.available()) {
+  char c = client.read();
+  whole_url+=c;
 
-        startPos = whole_url.indexOf("val2=")+5;
-        endPos = whole_url.indexOf(" ",startPos);
-        String password = whole_url.substring(startPos,endPos);
-        Serial.println("password");Serial.println(password);
+  if (c == '\n') {
 
-        File password_save = LittleFS.open("/password.txt", "w");  // Open for writing
-        password_save.println(ssid);
-        password_save.println(password);
-        password_save.close();
+  if (whole_url.indexOf("favicon") <0){
 
-      }
-    //Serial.println(whole_url);
-    if (whole_url.indexOf("GET /set?") >= 0) {
-      Serial.println("Looking");
-    
-int startPos = whole_url.indexOf("GET /set?=") + 10;
-              endPos = whole_url.indexOf(" ", startPos);
-              //String mailStr = whole_url.substring(startPos,startPos+1);            
-              String emailStr = whole_url.substring(startPos+2, endPos);
-              Serial.println(emailStr);
-//               // Update the program variable
-              youvegotmail = whole_url[9];
-              youvegotemail = emailStr.toFloat(); 
-              Serial.println((youvegotmail));
-              Serial.println((youvegotemail));
-//               statusMessage = "Value successfully updated to " + String(youvegotemail) + "!";
-//               Serial.println("Variable updated to: " + String(youvegotemail));
-//               Serial.println("YOUVEGOTMAIL is " + String(mailStr));
+  if(whole_url.indexOf("/detailed") >=0){detailed_graphics=1;}
+  if(whole_url.indexOf("/?val") >=0){
+  startPos = whole_url.indexOf("val=")+4;
+  endPos = whole_url.indexOf('&',startPos);
+  String ssid = whole_url.substring(startPos,endPos);
+  Serial.println("ssid");
+  Serial.println(ssid);
 
+  startPos = whole_url.indexOf("val2=")+5;
+  endPos = whole_url.indexOf(" ",startPos);
+  String password = whole_url.substring(startPos,endPos);
+  Serial.println("password");Serial.println(password);
 
-inbox();
-    //int startPos = whole_url.indexOf("/set?");
-    //int endPos = whole_url.indexOf(" ", startPos);
-    //Serial.println(startPos);
-    //Serial.println(endPos);
-    //Serial.println(whole_url);
-    
-    //youvegotmail = whole_url[9];
+  File password_save = LittleFS.open("/password.txt", "w");  // Open for writing
+  password_save.println(ssid);
+  password_save.println(password);
+  password_save.close();
 
-    //Serial.println(char(youvegotmail));
+  }
+  //Serial.println(whole_url);
+  if (whole_url.indexOf("GET /set?") >= 0) {
+  Serial.println("Looking");
 
-    }}
-    
+  int startPos = whole_url.indexOf("GET /set?=") + 10;
+  endPos = whole_url.indexOf(" ", startPos);
+  //String mailStr = whole_url.substring(startPos,startPos+1);            
+  youvegotemail = whole_url.substring(startPos+2, endPos);youvegotemail.trim();
+  //Serial.println(emailStr);
+  //               // Update the program variable
+  youvegotmail = whole_url[9];
+  //youvegotemail = emailStr.toFloat(); 
+  Serial.println((youvegotmail));
+  Serial.println((youvegotemail));
+  //               statusMessage = "Value successfully updated to " + String(youvegotemail) + "!";
+  //               Serial.println("Variable updated to: " + String(youvegotemail));
+  //               Serial.println("YOUVEGOTMAIL is " + String(mailStr));
 
 
-          // If the line is empty, it means the HTTP request ended.
-          // Now we can send our basic HTML webpage.
-          
-          if (currentLine.length() == 0) {
-            
-            // Standard HTTP response headers
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-Type: text/html");
-            client.println("Connection: close");
-            client.println(); // Mandatory blank line separating headers from HTML
+  inbox();
+  //int startPos = whole_url.indexOf("/set?");
+  //int endPos = whole_url.indexOf(" ", startPos);
+  //Serial.println(startPos);
+  //Serial.println(endPos);
+  //Serial.println(whole_url);
 
-            // The Basic HTML Document Content
-            client.println("<!DOCTYPE html><html>");
-            client.println("<title>INPUT LAG Tester</title>");
-            client.println("<style>body { font-family: Arial; text-align: left; margin-top: 50px; } </style>");
-            client.println("</head><body>");
-            client.println("<p></p>");
-            client.println("<style>button { width: 250px; height: 80px; font-size: 22px; margin: 10px; }</style>");
+  //youvegotmail = whole_url[9];
+
+  //Serial.println(char(youvegotmail));
+  client.println("HTTP/1.1 303 See Other");
+  client.println("Location: /");
+  client.println("Connection: close");
+  client.println(); // Empty line to end headers
+  }
 
 
 
-            client.println("<h1>Testing results</h1>");
+  // If the line is empty, it means the HTTP request ended.
+  // Now we can send our basic HTML webpage.
 
-            client.println("<a href=\"/set?Y=1\"><button>Start PTmain</button></a>");
-            client.println("<a href=\"/set?Y=2\"><button>Start PTsub</button></a>");
-              client.println("<a href=\"/\"><button>Refresh</button></a>");
-                          client.println("<p></p>");
+  if (currentLine.length() == 0) {
 
-            client.println("<h1>" + String(trial_number) + " / "+String(TRIAL_MAX) +  "trials</h1>");
+  // Standard HTTP response headers
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: text/html");
+  client.println("Connection: close");
+  client.println(); // Mandatory blank line separating headers from HTML
 
-            client.println("<h1>PTmain results = "+ String(PTmain_results[trial_number])+"ms (AVG = "+String(PTmain_avg)+"ms)</h1>");
-            client.println("<h1>PTsub results = "+ String(PTsub_results[trial_number])+"ms (AVG = "+String(PTsub_avg)+"ms)</h1>");
-
-            client.println("<h1>PTmain reading: " + String(PTmain_current) + " PTsub reading: "+String(PTsub_current) +  "</h1>");
-
-              
-            client.println("<p></p>");
-            client.println("<a href=\"/set?%\"><button>OK</button></a>");
-            client.println("<a href=\"/set?$\"><button>CANCEL</button></a>");
-            client.println("<p></p>");
-            client.println("<a href=\"/set?&\"><button>LEFT</button></a>");
-            client.println("<a href=\"/set?*\"><button>RIGHT</button></a>");
-            client.println("<p></p>");
-          
-                  
-            client.println("<details>");
-            client.println("  <summary>Click for results</summary>");
-            //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
-            client.println("<p></p>");
-            for (int n = 0;n<TRIAL_MAX;n++){  
-            client.println("<p>"+String(n) + " = " + String(PTmain_results[n])+"ms, "+String(PTsub_results[n])+"ms</p>");}
-            client.println("</details>");
-            client.println("<p></p>");
-
-            client.println("<details>");
-            client.println("  <summary>Click for settings</summary>");
-            //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
-            client.println("<p></p>");
-            for (int n = 0;n<length_array;n++){  
-            client.println("<form action='/set' method='GET'>");
-            client.println("  <input type='number'  name="+String(serial_names[n])+" placeholder="+String(*pointers[n]) +">");
-            client.println("  <input type='submit' value="+String(serial_titles[n])+">");
-            client.println("</form>");}
-            client.println("</details>");
-            client.println("<p></p>");
+  // The Basic HTML Document Content
+  client.println("<!DOCTYPE html><html>");
 
 
-            client.println("<details>");
-            client.println("  <summary>Click for further settings</summary>");
-            //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
-            client.println("<p></p>");
-            for (int n = 0;n<float_length_array;n++){  
-            client.println("<form action='/set' method='GET'>");
-            client.println("  <input type='number'  name="+String(float_serial_names[n])+" placeholder="+String(*float_pointers[n]) +">");
-            client.println("  <input type='submit' value="+String(float_serial_titles[n])+">");
-            client.println("</form>");}
-            client.println("</details>");
-            
-   
-            
-            client.println("<p>This page automatically reloads every " + String(website_refresh)+" seconds.</p>");
+  // client.println("<title>INPUT LAG Tester</title>");            
+  // client.println("<style>body { font-family: Arial; text-align: left; margin-top: 50px; } </style>");
+  // client.println("</head><body>");
+  // client.println("<p></p>");
+  client.println("<style>button { width: 250px; height: 80px; font-size: 22px; margin: 10px; }</style>");
 
 
-if (wifimode == 0){
-              client.println("<h3>If you want to connect to network mode next time, input WiFi details here</h3>");
 
+  //client.println("<h1>Testing results</h1>");
+
+  client.println("<a href=\"/set?Y=1\"><button>Start PTmain</button></a>");
+  client.println("<a href=\"/set?Y=2\"><button>Start PTsub</button></a>");
+  client.println("<a href=\"/\"><button>Refresh</button></a>");
+  client.println("<p></p>");
+
+  client.println("<h1>" + String(trial_number) + " / "+String(TRIAL_MAX) +  "trials</h1>");
+
+  client.println("<h1>PTmain results = "+ String(PTmain_results[trial_number])+"ms (AVG = "+String(PTmain_avg)+"ms)</h1>");
+  client.println("<h1>PTsub results = "+ String(PTsub_results[trial_number])+"ms (AVG = "+String(PTsub_avg)+"ms)</h1>");
+
+  client.println("<h1>PTmain reading: " + String(PTmain_current) + " PTsub reading: "+String(PTsub_current) +  "</h1>");
+
+
+  client.println("<p></p>");
+  client.println("<a href=\"/set?*\"><button>UP</button></a>");
+  client.println("<a href=\"/set?%\"><button>OK</button></a>");
+
+  client.println("<p></p>");
+  client.println("<a href=\"/set?&\"><button>DOWN</button></a>");
+  client.println("<a href=\"/set?$\"><button>CANCEL</button></a>");
+
+  client.println("<p></p>");
+
+      client.println("  <canvas id=\"canvas_last\" width=\""+String(REPORT_TIME)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
+  client.println("  <script>");
+  client.println("    var ctx_last = document.getElementById(\"canvas_last\").getContext(\"2d\");");
+  //client.println("ctx_last.imageSmoothingEnabled = false;");
+  client.println("    ctx_last.fillStyle = \"blue\";");
+  for (int variable = 0;variable < REPORT_TIME;variable ++){
+  client.println("    ctx_last.fillRect("+String(variable)+","+String(255-PTmain_decimal[variable*10])+", 1, 1);");}
+  client.println("    ctx_last.fillStyle = \"red\";");
+  for (int variable = 0;variable < REPORT_TIME;variable ++){
+  client.println("    ctx_last.fillRect("+String(variable)+","+String(255-PTsub_decimal[variable*10])+", 1, 1);");}
+  client.println("  </script>");
+
+  client.println("<p></p>");
   
+    //client.println("  <canvas id=\"canvas_avg\" width=\""+String(TRIAL_MAX)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
+  client.println("  <canvas id=\"canvas_avg\" width=\""+String(TRIAL_MAX)+"\" height=\""+String(REPORT_TIME-read_time)+"\" style=\"border:1px solid black;\"></canvas>");
+  client.println("  <script>");
+  client.println("    var ctx_avg = document.getElementById(\"canvas_avg\").getContext(\"2d\");");
+  //client.println("ctx_avg.imageSmoothingEnabled = false;");
+  client.println("    ctx_avg.fillStyle = \"blue\";");
+  for (int variable = 0;variable < TRIAL_MAX;variable ++){
+  client.println("    ctx_avg.fillRect("+String(variable)+","+String(REPORT_TIME-read_time-int(PTmain_results[variable]))+", 1, 1);");}
+  client.println("    ctx_avg.fillStyle = \"red\";");
+  for (int variable = 0;variable < TRIAL_MAX;variable ++){
+  client.println("    ctx_avg.fillRect("+String(variable)+","+String(REPORT_TIME-read_time-int(PTsub_results[variable]))+", 1, 1);");}
+  client.println("  </script>");
+  client.println("<p></p>");
+  
+  client.println("<details>");
+  client.println("  <summary>Click for results</summary>");            
+  client.println("<p></p>");
+
+  client.println("<a href=\"/detailed\"><button>SHOW GRAPHICS</button></a>");
+  client.println("<p></p>");
+
+
+
+
+
+  for (int n = 0;n<TRIAL_MAX;n++){  
+  client.println("<p>"+String(n) + " = " + String(PTmain_results[n])+"ms, "+String(PTsub_results[n])+"ms</p>");
+
+  if (detailed_graphics == 1){
+  client.println("  <canvas id=\"canvas"+String(n)+"\" width=\""+String(REPORT_TIME)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
+  // client.println("  <script>");
+  // client.println("    var ctx"+String(n)+" = document.getElementById(\"canvas"+String(n)+"\").getContext(\"2d\");");
+  // client.println("  </script>");
+  }}
+  client.println("</details>");
+  client.println("<p></p>");
+  if (detailed_graphics == 1){
+  File rawfile = LittleFS.open("/raw.txt", "r");  // Open for reading
+  if (rawfile) {
+  while (rawfile.available()) {
+  String raw_line = rawfile.readStringUntil('\n');
+  raw_line.trim();
+  //Serial.println(rawline);
+  if (raw_line[0] == 'u'){ 
+  raw_line=raw_line.substring(1);
+  int raw_deletion_point = raw_line.indexOf('=');
+
+
+  int raw_test = raw_line.substring(0,raw_deletion_point).toInt();
+  //Serial.println();
+  //Serial.println(raw_line);
+  //Serial.println();
+  //Serial.print(raw_test);Serial.print("=");
+  //Serial.println(raw_deletion_point);
+  raw_line = raw_line.substring(raw_deletion_point+1);
+  //Serial.println(raw_line);
+
+  client.println("  <script>");
+  client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
+  
+  client.println("    ctx"+String(raw_test)+".fillStyle = \"black\";");
+  client.println("    ctx"+String(raw_test)+".fillRect("+String(read_time)+",0, 1, 255);");
+  
+  client.println("    ctx"+String(raw_test)+".fillStyle = \"blue\";");
+
+
+  //client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
+
+  for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
+  int raw_deletion_point = raw_line.indexOf(',');
+  int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
+  raw_line = raw_line.substring(raw_deletion_point+1);
+  //Serial.print(raw_x_coord);Serial.print(",");
+  //Serial.println(raw_line);
+  if (raw_x_coord !=0){
+  client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
+  client.println("  </script>");   
+
+  }
+  //Serial.println(raw_test);
+
+
+
+
+  if (raw_line[0] == 'v'){ 
+  raw_line=raw_line.substring(1);
+  int raw_deletion_point = raw_line.indexOf('=');
+
+  int raw_test = raw_line.substring(0,raw_deletion_point).toInt();
+  //Serial.println();
+  //Serial.println(raw_line);
+  //Serial.println();
+  //Serial.print(raw_test);Serial.print("=");
+  //Serial.println(raw_deletion_point);
+  raw_line = raw_line.substring(raw_deletion_point+1);
+  //Serial.println(raw_line);
+
+  client.println("  <script>");
+  client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
+  client.println("    ctx"+String(raw_test)+".fillStyle = \"red\";");
+
+
+  //client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
+
+  for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
+  int raw_deletion_point = raw_line.indexOf(',');
+  int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
+  raw_line = raw_line.substring(raw_deletion_point+1);
+  //Serial.print(raw_x_coord);Serial.print(",");
+  //Serial.println(raw_line);
+  if (raw_x_coord !=0){
+  client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
+  client.println("  </script>");   
+
+  }
+
+
+  }
+  //Serial.println(rawline);
+  rawfile.close();}
+
+  detailed_graphics = 0;}
+
+  client.println("<details>");
+  client.println("  <summary>Click for controller settings</summary>");
+  //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
+  client.println("<p></p>");
+  for (int n = 0;n<30;n++){  
+  client.println("<form action='/set' method='GET'>");
+  client.println("  <input type='number'  name="+String(serial_names[n])+" placeholder="+String(*pointers[n]) +">");
+  client.println("  <input type='submit' value="+String(serial_titles[n])+">");
+  client.println("</form>");}
+  client.println("</details>");
+  client.println("<p></p>");
+
+    client.println("<details>");
+  client.println("  <summary>Click for test settings</summary>");
+  //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
+  client.println("<p></p>");
+  for (int n = 30;n<length_array;n++){  
+  client.println("<form action='/set' method='GET'>");
+  client.println("  <input type='number'  name="+String(serial_names[n])+" placeholder="+String(*pointers[n]) +">");
+  client.println("  <input type='submit' value="+String(serial_titles[n])+">");
+  client.println("</form>");}
+  client.println("</details>");
+  client.println("<p></p>");
+
+
+  client.println("<details>");
+  client.println("  <summary>Click for screen settings</summary>");
+  //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
+  client.println("<p></p>");
+  for (int n = 0;n<float_length_array;n++){  
+  client.println("<form action='/set' method='GET'>");
+  client.println("  <input type='text'  name="+String(float_serial_names[n])+" placeholder="+String(*float_pointers[n]) +">");
+  client.println("  <input type='submit' value="+String(float_serial_titles[n])+">");
+  client.println("</form>");}
+  client.println("</details>");
+
+  client.println("<p></p>");
+
+  if (wifimode == 0){
+  client.println("<h3>If you want to connect to network mode next time, input WiFi details here</h3>");
+
+
   client.println("<form action=\"/\" method=\"GET\">");
   client.println("Value: <input type=\"text\" name=\"val\"><br><br>");
   client.println("Value2: <input type=\"text\" name=\"val2\"><br><br>");
   client.println("<input type=\"submit\" value=\"Submit\">");
   client.println("</form>");}
 
-            client.println("</body></html>");
-            client.println("<meta http-equiv=\"refresh\" content=\""+String(website_refresh)+"\">");
-            
-            break; // Stop looking for data and close connection
-          } else {
-            currentLine = ""; // Clear line if it was just a regular newline
-          }
-        } else if (c != '\r') {
-          currentLine += c; // Build up the incoming text line
-        }
-      }
-    }
-    delay(10); // Give the browser brief time to receive data
-    client.stop(); // Disconnect the client
-    Serial.println("Client disconnected.");
-    
-    
+  client.println("<p></p>");
+  client.println("<details>");
+  client.println("  <summary>Data for export to spreadsheet</summary>");
+
+  client.println("<h4>"+String(results)+"</h4>");
+
+  client.println("</details>");
+
+  client.println("<p></p>");
+
+  client.print("<head>");
+  client.print("  <meta name='viewport' content='width=device-width, initial-scale=1'>");
+  client.print("  <title id='page-title'>Input Lag Testing</title>");
+  client.print("</head>");
+  client.print("<body style='font-family: Arial; text-align: left; margin-top: 50px;'>");
+
+  // Visual heading on the page
+  //client.print("  <h1 id='display-heading'>Input Lag Testing</h1>");
+
+  // 3. Send Text Box and Button (Plain HTML, no form submit/reload)
+
+  client.print("  <input type='text' id='titleInput' placeholder='Type new title...'");
+  client.print("<style='width: 200px; height: 20px; font-size: 22px; padding: 10px;'>");
+  client.print("  <button onclick='updateTitle()'>Update Title</button>");
+
+  client.print("  <script>");
+  client.print("    function updateTitle() {");
+  client.print("      var newTitle = document.getElementById('titleInput').value;");
+  client.print("      if(newTitle.trim() !== '') {");
+  client.print("        document.title = newTitle;"); // Changes browser tab title
+  client.print("        document.getElementById('display-heading').innerText = newTitle;"); // Updates heading
+  client.print("      }");
+  client.print("    }");
+  client.print("  </script>");
+  //client.println("<p>This page automatically reloads every " + String(website_refresh)+" seconds.</p>");
+
+
+
+
+
+  //display.drawPixel(variable,64-int(PTmain_decimal[query_time*10 + variable*10]/4), SSD1306_WHITE);}
+  client.println("<p></p>");
+
+
+
+  client.println("</body></html>");
+  //client.println("<meta http-equiv=\"refresh\" content=\""+String(website_refresh)+"\">");
+
+  break; // Stop looking for data and close connection
+  } else {
+  currentLine = ""; // Clear line if it was just a regular newline
+  }
+  } else if (c != '\r') {
+  currentLine += c; // Build up the incoming text line
+  }
+  }
+  }}
+  delay(10); // Give the browser brief time to receive data
+  client.stop(); // Disconnect the client
+  Serial.println("Client disconnected.");
+
+
 
 
 
@@ -1805,6 +1959,8 @@ website_refresh = 30;
 
       if ((current_button == 5) && (last_button == 0) && (cursor_position == 0)) {  //EEPROM_RESET();
         reset_all_values();
+
+        
         last_button = 5;
         cursor_position = initial_cursor_position;
         mode = 0;
@@ -1812,9 +1968,9 @@ website_refresh = 30;
 
       if ((current_button == 5) &&(last_button ==0) && (cursor_position == 3)){calculate_mode = 0;}
       if ((current_button == 5) &&(last_button ==0) && (cursor_position == 4)){calculate_mode = 1;}
-      if ((current_button == 5) &&(last_button ==0) && (cursor_position == 8)){calculate_mode = 2;}
+      if ((current_button == 5) &&(last_button ==0) && (cursor_position == 9)){trial_number = TRIAL_MAX + 1;}
 
-      if ((current_button == 5) && (last_button == 0) && (cursor_position > 0) && (cursor_position < 9)) {
+      if ((current_button == 5) && (last_button == 0) && (cursor_position > 0) && (cursor_position < 10)) {
         reset_OPT_values();
         pinMode(RED_LED, OUTPUT);
         pinMode(GREEN_LED, OUTPUT);
@@ -1824,27 +1980,14 @@ website_refresh = 30;
         digitalWrite(BLUE_LED, LOW);
         time3 = 1 + micros() / 100;
         if ((cursor_position >=1) && (cursor_position <=8) && (trial_number < TRIAL_MAX)){prepare_summary();}
-        
-        mode = 1;
-      }
-
-        if ((current_button == 5) && (last_button == 0) &&  (cursor_position == 8) && (trial_number < TRIAL_MAX)){
-    connect_sub_board();
-          initial_cursor_position = 8;
-
-        mode = 1;
-        }
+        mode = 1;}
 
 
 
-      if ((current_button == 5) && (last_button == 0) && (cursor_position == 9)){trial_number = TRIAL_MAX+1;mode = 2;}
 
-        if ((current_button == 5) && (last_button == 0) &&  (cursor_position == 10) && (trial_number < TRIAL_MAX)){
-          connect_sub_board();
-          initial_cursor_position = 10;
 
-        mode = 2;
-        }
+
+        if ((current_button == 5) && (last_button == 0) &&  (cursor_position == 10)){connect_sub_board();}
 
 
       if ((current_button == 5) && (last_button == 0) && (cursor_position == -1)){mode = -1;last_button = 5;}
