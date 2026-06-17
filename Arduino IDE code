@@ -4,12 +4,7 @@
 //in Tools I have IP/Bluetooth stack set to IPv4 + Bluetooth
 //in Tools I have Flash size set to 4MB(Sketch 2MB FS 2MB )
 
-//Tested version of board is here https://oshpark.com/shared_projects/scDfyYnd
-//Tested version of phototransistor board is hered https://oshpark.com/shared_projects/rQflS270
-
-
-//Beta version of board is here https://oshpark.com/shared_projects/tErOh6uE
-//Beta phototransistor board is here https://oshpark.com/shared_projects/tjg3CdkS
+//Will post board links once I've tested them
 
 //playlist showing soldering and setup is here
 //https://www.youtube.com/playlist?list=PLevqZFjlWIdexYMa2yQZgw0dfLVjzN8m7
@@ -1374,7 +1369,7 @@ trial_number = trial_number + 1;
           pinMode(LEFT, INPUT_PULLUP);
           pinMode(RIGHT, INPUT_PULLUP);
           pinMode(CONFIRM, INPUT_PULLUP);
-          mode = 0;detailed_graphics = 1;
+          mode = 0;//detailed_graphics = 1;
         }
         //if (cursor_position == -1){trial_number = trial_number -1;mode = 11;}
 
@@ -1414,7 +1409,7 @@ trial_number = trial_number + 1;
           pinMode(LEFT, INPUT_PULLUP);
           pinMode(RIGHT, INPUT_PULLUP);
           pinMode(CONFIRM, INPUT_PULLUP);
-          mode = 0;detailed_graphics = 1;
+          mode = 0;//detailed_graphics = 1;
         // }
       }
     }
@@ -1570,376 +1565,293 @@ inbox();
 
 WiFiClient client = server.accept();
 if (client) {
-  whole_url="";
-  Serial.println("New browser request.");
-  String currentLine = "";
+Serial.println("New browser request.");
 
-  while (client.connected()) {
-  if (client.available()) {
-  char c = client.read();
-  whole_url+=c;
-
+while (client.connected()) {
+if (client.available()) {
+char c = client.read();
   if (c == '\n') {
 
-  if (whole_url.indexOf("favicon") <0){
+    if(whole_url.length() == 0){
+      ///main HTML page
 
-  if(whole_url.indexOf("/detailed") >=0){detailed_graphics=1;}
-  if(whole_url.indexOf("/?val") >=0){
-  startPos = whole_url.indexOf("val=")+4;
-  endPos = whole_url.indexOf('&',startPos);
-  String ssid = whole_url.substring(startPos,endPos);
-  Serial.println("ssid");
-  Serial.println(ssid);
+      // Standard HTTP response headers
+      client.println("HTTP/1.1 200 OK");
+      client.println("Content-Type: text/html");
+      client.println("Connection: close");
+      client.println(); // Mandatory blank line separating headers from HTML
 
-  startPos = whole_url.indexOf("val2=")+5;
-  endPos = whole_url.indexOf(" ",startPos);
-  String password = whole_url.substring(startPos,endPos);
-  Serial.println("password");Serial.println(password);
+      // The Basic HTML Document Content
+      client.println("<!DOCTYPE html><html>");
+      client.println("<style>button { width: 250px; height: 80px; font-size: 22px; margin: 10px; }</style>");
 
-  File password_save = LittleFS.open("/password.txt", "w");  // Open for writing
-  password_save.println(ssid);
-  password_save.println(password);
-  password_save.close();
+      client.println("<a href=\"/set?Y=1\"><button>Start PTmain</button></a>");
+      client.println("<a href=\"/set?Y=2\"><button>Start PTsub</button></a>");
+      client.println("<a href=\"/\"><button>Refresh</button></a>");
+      client.println("<p></p>");
 
-  }
-  //Serial.println(whole_url);
-  if (whole_url.indexOf("GET /set?") >= 0) {
-  Serial.println("Looking");
+      client.println("<h1>" + String(trial_number) + " / "+String(TRIAL_MAX) +  "trials</h1>");
 
-  int startPos = whole_url.indexOf("GET /set?=") + 10;
-  endPos = whole_url.indexOf(" ", startPos);
-  //String mailStr = whole_url.substring(startPos,startPos+1);            
-  youvegotemail = whole_url.substring(startPos+2, endPos);youvegotemail.trim();
-  //Serial.println(emailStr);
-  //               // Update the program variable
-  youvegotmail = whole_url[9];
-  //youvegotemail = emailStr.toFloat(); 
-  Serial.println((youvegotmail));
-  Serial.println((youvegotemail));
-  //               statusMessage = "Value successfully updated to " + String(youvegotemail) + "!";
-  //               Serial.println("Variable updated to: " + String(youvegotemail));
-  //               Serial.println("YOUVEGOTMAIL is " + String(mailStr));
+      client.println("<h1>PTmain results = "+ String(PTmain_results[trial_number])+"ms (AVG = "+String(PTmain_avg)+"ms)</h1>");
+      client.println("<h1>PTsub results = "+ String(PTsub_results[trial_number])+"ms (AVG = "+String(PTsub_avg)+"ms)</h1>");
 
+      client.println("<h1>PTmain reading: " + String(PTmain_current) + " PTsub reading: "+String(PTsub_current) +  "</h1>");
 
-  inbox();
-  //int startPos = whole_url.indexOf("/set?");
-  //int endPos = whole_url.indexOf(" ", startPos);
-  //Serial.println(startPos);
-  //Serial.println(endPos);
-  //Serial.println(whole_url);
+      client.println("<p></p>");
+      client.println("<a href=\"/set?*\"><button>UP</button></a>");
+      client.println("<a href=\"/set?%\"><button>OK</button></a>");
 
-  //youvegotmail = whole_url[9];
+      client.println("<p></p>");
+      client.println("<a href=\"/set?&\"><button>DOWN</button></a>");
+      client.println("<a href=\"/set?$\"><button>CANCEL</button></a>");
 
-  //Serial.println(char(youvegotmail));
-  client.println("HTTP/1.1 303 See Other");
-  client.println("Location: /");
-  client.println("Connection: close");
-  client.println(); // Empty line to end headers
-  }
-
-
-
-  // If the line is empty, it means the HTTP request ended.
-  // Now we can send our basic HTML webpage.
-
-  if (currentLine.length() == 0) {
-
-  // Standard HTTP response headers
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/html");
-  client.println("Connection: close");
-  client.println(); // Mandatory blank line separating headers from HTML
-
-  // The Basic HTML Document Content
-  client.println("<!DOCTYPE html><html>");
-
-
-  // client.println("<title>INPUT LAG Tester</title>");            
-  // client.println("<style>body { font-family: Arial; text-align: left; margin-top: 50px; } </style>");
-  // client.println("</head><body>");
-  // client.println("<p></p>");
-  client.println("<style>button { width: 250px; height: 80px; font-size: 22px; margin: 10px; }</style>");
-
-
-
-  //client.println("<h1>Testing results</h1>");
-
-  client.println("<a href=\"/set?Y=1\"><button>Start PTmain</button></a>");
-  client.println("<a href=\"/set?Y=2\"><button>Start PTsub</button></a>");
-  client.println("<a href=\"/\"><button>Refresh</button></a>");
-  client.println("<p></p>");
-
-  client.println("<h1>" + String(trial_number) + " / "+String(TRIAL_MAX) +  "trials</h1>");
-
-  client.println("<h1>PTmain results = "+ String(PTmain_results[trial_number])+"ms (AVG = "+String(PTmain_avg)+"ms)</h1>");
-  client.println("<h1>PTsub results = "+ String(PTsub_results[trial_number])+"ms (AVG = "+String(PTsub_avg)+"ms)</h1>");
-
-  client.println("<h1>PTmain reading: " + String(PTmain_current) + " PTsub reading: "+String(PTsub_current) +  "</h1>");
-
-
-  client.println("<p></p>");
-  client.println("<a href=\"/set?*\"><button>UP</button></a>");
-  client.println("<a href=\"/set?%\"><button>OK</button></a>");
-
-  client.println("<p></p>");
-  client.println("<a href=\"/set?&\"><button>DOWN</button></a>");
-  client.println("<a href=\"/set?$\"><button>CANCEL</button></a>");
-
-  client.println("<p></p>");
+      client.println("<p></p>");
 
       client.println("  <canvas id=\"canvas_last\" width=\""+String(REPORT_TIME)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
-  client.println("  <script>");
-  client.println("    var ctx_last = document.getElementById(\"canvas_last\").getContext(\"2d\");");
-  //client.println("ctx_last.imageSmoothingEnabled = false;");
-  client.println("    ctx_last.fillStyle = \"blue\";");
-  for (int variable = 0;variable < REPORT_TIME;variable ++){
-  client.println("    ctx_last.fillRect("+String(variable)+","+String(255-PTmain_decimal[variable*10])+", 1, 1);");}
-  client.println("    ctx_last.fillStyle = \"red\";");
-  for (int variable = 0;variable < REPORT_TIME;variable ++){
-  client.println("    ctx_last.fillRect("+String(variable)+","+String(255-PTsub_decimal[variable*10])+", 1, 1);");}
-  client.println("  </script>");
+      client.println("  <script>");
+      client.println("    var ctx_last = document.getElementById(\"canvas_last\").getContext(\"2d\");");
+      //client.println("ctx_last.imageSmoothingEnabled = false;");
+      client.println("    ctx_last.fillStyle = \"blue\";");
+      for (int variable = 0;variable < REPORT_TIME;variable ++){
+      client.println("    ctx_last.fillRect("+String(variable)+","+String(255-PTmain_decimal[variable*10])+", 1, 1);");}
+      client.println("    ctx_last.fillStyle = \"red\";");
+      for (int variable = 0;variable < REPORT_TIME;variable ++){
+      client.println("    ctx_last.fillRect("+String(variable)+","+String(255-PTsub_decimal[variable*10])+", 1, 1);");}
+      client.println("  </script>");
 
-  client.println("<p></p>");
+      client.println("<p></p>");
+
+      //client.println("  <canvas id=\"canvas_avg\" width=\""+String(TRIAL_MAX)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
+      client.println("  <canvas id=\"canvas_avg\" width=\""+String(TRIAL_MAX)+"\" height=\""+String(REPORT_TIME-read_time)+"\" style=\"border:1px solid black;\"></canvas>");
+      client.println("  <script>");
+      client.println("    var ctx_avg = document.getElementById(\"canvas_avg\").getContext(\"2d\");");
+      //client.println("ctx_avg.imageSmoothingEnabled = false;");
+      client.println("    ctx_avg.fillStyle = \"blue\";");
+      for (int variable = 0;variable < TRIAL_MAX;variable ++){
+      client.println("    ctx_avg.fillRect("+String(variable)+","+String(REPORT_TIME-read_time-int(PTmain_results[variable]))+", 1, 1);");}
+      client.println("    ctx_avg.fillStyle = \"red\";");
+      for (int variable = 0;variable < TRIAL_MAX;variable ++){
+      client.println("    ctx_avg.fillRect("+String(variable)+","+String(REPORT_TIME-read_time-int(PTsub_results[variable]))+", 1, 1);");}
+      client.println("  </script>");
+      client.println("<p></p>");
+
+      client.println("<details>");
+      client.println("  <summary>Click for results</summary>");            
+      client.println("<p></p>");
+
+      client.println("<a href=\"/detailed\"><button>SHOW GRAPHICS</button></a>");
+      client.println("<p></p>");
+
+      for (int n = 0;n<TRIAL_MAX;n++){  
+      client.println("<p>"+String(n) + " = " + String(PTmain_results[n])+"ms, "+String(PTsub_results[n])+"ms</p>");
+
+      if (detailed_graphics == 1){
+      client.println("  <canvas id=\"canvas"+String(n)+"\" width=\""+String(REPORT_TIME)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
+      // client.println("  <script>");
+      // client.println("    var ctx"+String(n)+" = document.getElementById(\"canvas"+String(n)+"\").getContext(\"2d\");");
+      // client.println("  </script>");
+      }}
+      client.println("</details>");
+      client.println("<p></p>");
+      if (detailed_graphics == 1){
+      File rawfile = LittleFS.open("/raw.txt", "r");  // Open for reading
+      if (rawfile) {
+      while (rawfile.available()) {
+      String raw_line = rawfile.readStringUntil('\n');
+      raw_line.trim();
+
+      if (raw_line[0] == 'u'){ 
+      raw_line=raw_line.substring(1);
+      int raw_deletion_point = raw_line.indexOf('=');
+
+
+      int raw_test = raw_line.substring(0,raw_deletion_point).toInt();
+      raw_line = raw_line.substring(raw_deletion_point+1);  
+
+      client.println("  <script>");
+      client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
+
+      client.println("    ctx"+String(raw_test)+".fillStyle = \"black\";");
+      client.println("    ctx"+String(raw_test)+".fillRect("+String(read_time)+",0, 1, 255);");
+
+      client.println("    ctx"+String(raw_test)+".fillStyle = \"blue\";");
+
+
+      for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
+      int raw_deletion_point = raw_line.indexOf(',');
+      int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
+      raw_line = raw_line.substring(raw_deletion_point+1);
+      //Serial.print(raw_x_coord);Serial.print(",");
+      //Serial.println(raw_line);
+      if (raw_x_coord !=0){
+      client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
+      client.println("  </script>");   
+
+      }
+
+      if (raw_line[0] == 'v'){ 
+      raw_line=raw_line.substring(1);
+      int raw_deletion_point = raw_line.indexOf('=');
+
+      int raw_test = raw_line.substring(0,raw_deletion_point).toInt();
+      raw_line = raw_line.substring(raw_deletion_point+1);
+
+      client.println("  <script>");
+      client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
+      client.println("    ctx"+String(raw_test)+".fillStyle = \"red\";");
+
+      for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
+      int raw_deletion_point = raw_line.indexOf(',');
+      int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
+      raw_line = raw_line.substring(raw_deletion_point+1);
+      if (raw_x_coord !=0){
+      client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
+      client.println("  </script>");   
+
+      }
+
+      }
+
+      rawfile.close();}
+
+      detailed_graphics = 0;}
+
+      client.println("<details>");
+      client.println("  <summary>Click for controller settings</summary>");
+      //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
+      client.println("<p></p>");
+      for (int n = 0;n<30;n++){  
+      client.println("<form action='/set' method='GET'>");
+      client.println("  <input type='number'  name="+String(serial_names[n])+" placeholder="+String(*pointers[n]) +">");
+      client.println("  <input type='submit' value="+String(serial_titles[n])+">");
+      client.println("</form>");}
+      client.println("</details>");
+      client.println("<p></p>");
+
+      client.println("<details>");
+      client.println("  <summary>Click for test settings</summary>");
+      //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
+      client.println("<p></p>");
+      for (int n = 30;n<length_array;n++){  
+      client.println("<form action='/set' method='GET'>");
+      client.println("  <input type='number'  name="+String(serial_names[n])+" placeholder="+String(*pointers[n]) +">");
+      client.println("  <input type='submit' value="+String(serial_titles[n])+">");
+      client.println("</form>");}
+      client.println("</details>");
+      client.println("<p></p>");
+
+
+      client.println("<details>");
+      client.println("  <summary>Click for screen settings</summary>");
+      //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
+      client.println("<p></p>");
+      for (int n = 0;n<float_length_array;n++){  
+      client.println("<form action='/set' method='GET'>");
+      client.println("  <input type='text'  name="+String(float_serial_names[n])+" placeholder="+String(*float_pointers[n]) +">");
+      client.println("  <input type='submit' value="+String(float_serial_titles[n])+">");
+      client.println("</form>");}
+      client.println("</details>");
+
+      client.println("<p></p>");
+
+      if (wifimode == 0){
+      client.println("<h3>If you want to connect to network mode next time, input WiFi details here</h3>");
+
+
+      client.println("<form action=\"/\" method=\"GET\">");
+      client.println("Value: <input type=\"text\" name=\"val\"><br><br>");
+      client.println("Value2: <input type=\"text\" name=\"val2\"><br><br>");
+      client.println("<input type=\"submit\" value=\"Submit\">");
+      client.println("</form>");}
+
+      client.println("<p></p>");
+      client.println("<details>");
+      client.println("  <summary>Data for export to spreadsheet</summary>");
+
+      client.println("<h4>"+String(results)+"</h4>");
+
+      client.println("</details>");
+
+      client.println("<p></p>");
+
+      client.print("<head>");
+      client.print("  <meta name='viewport' content='width=device-width, initial-scale=1'>");
+      client.print("  <title id='page-title'>Input Lag Testing</title>");
+      client.print("</head>");
+      client.print("<body style='font-family: Arial; text-align: left; margin-top: 50px;'>");
+
+      // Visual heading on the page
+      //client.print("  <h1 id='display-heading'>Input Lag Testing</h1>");
+
+      // 3. Send Text Box and Button (Plain HTML, no form submit/reload)
+
+      client.print("  <input type='text' id='titleInput' placeholder='Type new title...'");
+      client.print("<style='width: 200px; height: 20px; font-size: 22px; padding: 10px;'>");
+      client.print("  <button onclick='updateTitle()'>Update Title</button>");
+
+      client.print("  <script>");
+      client.print("    function updateTitle() {");
+      client.print("      var newTitle = document.getElementById('titleInput').value;");
+      client.print("      if(newTitle.trim() !== '') {");
+      client.print("        document.title = newTitle;"); // Changes browser tab title
+      client.print("        document.getElementById('display-heading').innerText = newTitle;"); // Updates heading
+      client.print("      }");
+      client.print("    }");
+      client.print("  </script>");
+      client.println("<p></p>");
+      client.println("</body></html>");
+
+      break;
+
   
-    //client.println("  <canvas id=\"canvas_avg\" width=\""+String(TRIAL_MAX)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
-  client.println("  <canvas id=\"canvas_avg\" width=\""+String(TRIAL_MAX)+"\" height=\""+String(REPORT_TIME-read_time)+"\" style=\"border:1px solid black;\"></canvas>");
-  client.println("  <script>");
-  client.println("    var ctx_avg = document.getElementById(\"canvas_avg\").getContext(\"2d\");");
-  //client.println("ctx_avg.imageSmoothingEnabled = false;");
-  client.println("    ctx_avg.fillStyle = \"blue\";");
-  for (int variable = 0;variable < TRIAL_MAX;variable ++){
-  client.println("    ctx_avg.fillRect("+String(variable)+","+String(REPORT_TIME-read_time-int(PTmain_results[variable]))+", 1, 1);");}
-  client.println("    ctx_avg.fillStyle = \"red\";");
-  for (int variable = 0;variable < TRIAL_MAX;variable ++){
-  client.println("    ctx_avg.fillRect("+String(variable)+","+String(REPORT_TIME-read_time-int(PTsub_results[variable]))+", 1, 1);");}
-  client.println("  </script>");
-  client.println("<p></p>");
-  
-  client.println("<details>");
-  client.println("  <summary>Click for results</summary>");            
-  client.println("<p></p>");
+    } else {
+    if (whole_url.indexOf("favicon") < 0) {
 
-  client.println("<a href=\"/detailed\"><button>SHOW GRAPHICS</button></a>");
-  client.println("<p></p>");
+      if(whole_url.indexOf("/detailed") >=0){detailed_graphics=1;}
 
+      if(whole_url.indexOf("/?val") >=0){
+      startPos = whole_url.indexOf("val=")+4;
+      endPos = whole_url.indexOf('&',startPos);
+      String ssid = whole_url.substring(startPos,endPos);
+      Serial.println("ssid");
+      Serial.println(ssid);
 
+      startPos = whole_url.indexOf("val2=")+5;
+      endPos = whole_url.indexOf(" ",startPos);
+      String password = whole_url.substring(startPos,endPos);
+      Serial.println("password");Serial.println(password);
 
-
-
-  for (int n = 0;n<TRIAL_MAX;n++){  
-  client.println("<p>"+String(n) + " = " + String(PTmain_results[n])+"ms, "+String(PTsub_results[n])+"ms</p>");
-
-  if (detailed_graphics == 1){
-  client.println("  <canvas id=\"canvas"+String(n)+"\" width=\""+String(REPORT_TIME)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
-  // client.println("  <script>");
-  // client.println("    var ctx"+String(n)+" = document.getElementById(\"canvas"+String(n)+"\").getContext(\"2d\");");
-  // client.println("  </script>");
-  }}
-  client.println("</details>");
-  client.println("<p></p>");
-  if (detailed_graphics == 1){
-  File rawfile = LittleFS.open("/raw.txt", "r");  // Open for reading
-  if (rawfile) {
-  while (rawfile.available()) {
-  String raw_line = rawfile.readStringUntil('\n');
-  raw_line.trim();
-  //Serial.println(rawline);
-  if (raw_line[0] == 'u'){ 
-  raw_line=raw_line.substring(1);
-  int raw_deletion_point = raw_line.indexOf('=');
-
-
-  int raw_test = raw_line.substring(0,raw_deletion_point).toInt();
-  //Serial.println();
-  //Serial.println(raw_line);
-  //Serial.println();
-  //Serial.print(raw_test);Serial.print("=");
-  //Serial.println(raw_deletion_point);
-  raw_line = raw_line.substring(raw_deletion_point+1);
-  //Serial.println(raw_line);
-
-  client.println("  <script>");
-  client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
-  
-  client.println("    ctx"+String(raw_test)+".fillStyle = \"black\";");
-  client.println("    ctx"+String(raw_test)+".fillRect("+String(read_time)+",0, 1, 255);");
-  
-  client.println("    ctx"+String(raw_test)+".fillStyle = \"blue\";");
-
-
-  //client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
-
-  for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
-  int raw_deletion_point = raw_line.indexOf(',');
-  int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
-  raw_line = raw_line.substring(raw_deletion_point+1);
-  //Serial.print(raw_x_coord);Serial.print(",");
-  //Serial.println(raw_line);
-  if (raw_x_coord !=0){
-  client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
-  client.println("  </script>");   
-
-  }
-  //Serial.println(raw_test);
-
-
-
-
-  if (raw_line[0] == 'v'){ 
-  raw_line=raw_line.substring(1);
-  int raw_deletion_point = raw_line.indexOf('=');
-
-  int raw_test = raw_line.substring(0,raw_deletion_point).toInt();
-  //Serial.println();
-  //Serial.println(raw_line);
-  //Serial.println();
-  //Serial.print(raw_test);Serial.print("=");
-  //Serial.println(raw_deletion_point);
-  raw_line = raw_line.substring(raw_deletion_point+1);
-  //Serial.println(raw_line);
-
-  client.println("  <script>");
-  client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
-  client.println("    ctx"+String(raw_test)+".fillStyle = \"red\";");
-
-
-  //client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
-
-  for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
-  int raw_deletion_point = raw_line.indexOf(',');
-  int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
-  raw_line = raw_line.substring(raw_deletion_point+1);
-  //Serial.print(raw_x_coord);Serial.print(",");
-  //Serial.println(raw_line);
-  if (raw_x_coord !=0){
-  client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
-  client.println("  </script>");   
-
-  }
-
-
-  }
-  //Serial.println(rawline);
-  rawfile.close();}
-
-  detailed_graphics = 0;}
-
-  client.println("<details>");
-  client.println("  <summary>Click for controller settings</summary>");
-  //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
-  client.println("<p></p>");
-  for (int n = 0;n<30;n++){  
-  client.println("<form action='/set' method='GET'>");
-  client.println("  <input type='number'  name="+String(serial_names[n])+" placeholder="+String(*pointers[n]) +">");
-  client.println("  <input type='submit' value="+String(serial_titles[n])+">");
-  client.println("</form>");}
-  client.println("</details>");
-  client.println("<p></p>");
-
-    client.println("<details>");
-  client.println("  <summary>Click for test settings</summary>");
-  //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
-  client.println("<p></p>");
-  for (int n = 30;n<length_array;n++){  
-  client.println("<form action='/set' method='GET'>");
-  client.println("  <input type='number'  name="+String(serial_names[n])+" placeholder="+String(*pointers[n]) +">");
-  client.println("  <input type='submit' value="+String(serial_titles[n])+">");
-  client.println("</form>");}
-  client.println("</details>");
-  client.println("<p></p>");
-
-
-  client.println("<details>");
-  client.println("  <summary>Click for screen settings</summary>");
-  //client.println("  <p>This is the hidden text revealed upon clicking.</p>");
-  client.println("<p></p>");
-  for (int n = 0;n<float_length_array;n++){  
-  client.println("<form action='/set' method='GET'>");
-  client.println("  <input type='text'  name="+String(float_serial_names[n])+" placeholder="+String(*float_pointers[n]) +">");
-  client.println("  <input type='submit' value="+String(float_serial_titles[n])+">");
-  client.println("</form>");}
-  client.println("</details>");
-
-  client.println("<p></p>");
-
-  if (wifimode == 0){
-  client.println("<h3>If you want to connect to network mode next time, input WiFi details here</h3>");
-
-
-  client.println("<form action=\"/\" method=\"GET\">");
-  client.println("Value: <input type=\"text\" name=\"val\"><br><br>");
-  client.println("Value2: <input type=\"text\" name=\"val2\"><br><br>");
-  client.println("<input type=\"submit\" value=\"Submit\">");
-  client.println("</form>");}
-
-  client.println("<p></p>");
-  client.println("<details>");
-  client.println("  <summary>Data for export to spreadsheet</summary>");
-
-  client.println("<h4>"+String(results)+"</h4>");
-
-  client.println("</details>");
-
-  client.println("<p></p>");
-
-  client.print("<head>");
-  client.print("  <meta name='viewport' content='width=device-width, initial-scale=1'>");
-  client.print("  <title id='page-title'>Input Lag Testing</title>");
-  client.print("</head>");
-  client.print("<body style='font-family: Arial; text-align: left; margin-top: 50px;'>");
-
-  // Visual heading on the page
-  //client.print("  <h1 id='display-heading'>Input Lag Testing</h1>");
-
-  // 3. Send Text Box and Button (Plain HTML, no form submit/reload)
-
-  client.print("  <input type='text' id='titleInput' placeholder='Type new title...'");
-  client.print("<style='width: 200px; height: 20px; font-size: 22px; padding: 10px;'>");
-  client.print("  <button onclick='updateTitle()'>Update Title</button>");
-
-  client.print("  <script>");
-  client.print("    function updateTitle() {");
-  client.print("      var newTitle = document.getElementById('titleInput').value;");
-  client.print("      if(newTitle.trim() !== '') {");
-  client.print("        document.title = newTitle;"); // Changes browser tab title
-  client.print("        document.getElementById('display-heading').innerText = newTitle;"); // Updates heading
-  client.print("      }");
-  client.print("    }");
-  client.print("  </script>");
-  //client.println("<p>This page automatically reloads every " + String(website_refresh)+" seconds.</p>");
-
-
-
-
-
-  //display.drawPixel(variable,64-int(PTmain_decimal[query_time*10 + variable*10]/4), SSD1306_WHITE);}
-  client.println("<p></p>");
-
-
-
-  client.println("</body></html>");
-  //client.println("<meta http-equiv=\"refresh\" content=\""+String(website_refresh)+"\">");
-
-  break; // Stop looking for data and close connection
-  } else {
-  currentLine = ""; // Clear line if it was just a regular newline
-  }
-  } else if (c != '\r') {
-  currentLine += c; // Build up the incoming text line
+      File password_save = LittleFS.open("/password.txt", "w");  // Open for writing
+      password_save.println(ssid);
+      password_save.println(password);
+      password_save.close();
+      }  
+      if (whole_url.indexOf("GET /set?") >= 0) {
+      Serial.println("Looking");
+      int startPos = whole_url.indexOf("GET /set?=") + 10;
+      endPos = whole_url.indexOf(" ", startPos);    
+      youvegotmail = whole_url[9];          
+      youvegotemail = whole_url.substring(startPos+2, endPos);youvegotemail.trim();
+      Serial.println((youvegotmail));
+      Serial.println((youvegotemail));   
+      inbox();
+      client.println("HTTP/1.1 303 See Other");//will this be needed?
+      client.println("Location: /");
+      client.println("Connection: close");
+      client.println(); // Empty line to end headers
+      }
+    }
+    whole_url = "";
+      }}
+      else if (c !='\r'){whole_url += c;}
   }
   }
-  }}
-  delay(10); // Give the browser brief time to receive data
-  client.stop(); // Disconnect the client
-  Serial.println("Client disconnected.");
 
+delay(10); // Give the browser brief time to receive data
+client.stop(); // Disconnect the client
+Serial.println("Client disconnected.");
+}
 
-
-
-
-
-  }
-website_refresh = 30;
 
 /////HTML LOOP
 
