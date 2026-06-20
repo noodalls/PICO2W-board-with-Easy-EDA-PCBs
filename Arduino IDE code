@@ -79,8 +79,8 @@ int calculate_mode = 0;//0 = Phototransistor known, 1 = phototransistor calc, 2 
 int fastest_slowest_mode = 0; //1 = only use fastest and slowest results when calculating averages
 int only_one_test = 0; //1 = test once at a time
 
-float upper = 92;
-float lower = 92;
+float upper = 27;
+float lower = 79;
 float top_of_screen = 0;
 float bottom_of_screen = 336;
 
@@ -122,7 +122,7 @@ int player = 2;
 int PLAY1P2P = 4;
 
 int trial_number = 0;
-int TRIAL_MAX = 300;
+int TRIAL_MAX = 100;
 
 int read_time = 100;
 int REPORT_TIME = 250;
@@ -291,6 +291,12 @@ void connect_sub_board(){
 }
 
 void save_summary() {
+  for (int variable=0;variable < 255; variable ++){
+    PTmain_summary[variable] = PTmain_decimal[variable * 10];
+    PTsub_summary[variable] = PTsub_decimal[variable * 10];
+
+  }
+
   File writeraw = LittleFS.open("/raw.txt", "a");
   writeraw.print("u");  
   writeraw.print(trial_number);
@@ -1241,8 +1247,6 @@ void loop() {
     PTmain_current = analogRead(PTmain) / 4;
     PTsub_current = analogRead(PTsub) / 4;
     elapsed_time = (time1 - time3);
-    if (PTmain_summary[PTmain_current] == 0) { PTmain_summary[PTmain_current] = elapsed_time_ms; }//***
-    if (PTsub_summary[PTsub_current] == 0) { PTsub_summary[PTsub_current] = elapsed_time_ms; }//***
     elapsed_time_ms = elapsed_time / 10;
     if (digitalRead(CANCEL) == 0) {
       current_button = 1;
@@ -1259,10 +1263,11 @@ void loop() {
     
     
     if (mode == 1) {
-
+//< 1000??
+      if (elapsed_time < 10000){
       PTmain_decimal[elapsed_time] = PTmain_current;
       PTsub_decimal[elapsed_time] = PTsub_current;
-
+      }
       for (int variable = 0; variable < 15; variable++) {
         if (elapsed_time_ms == OUTPUT_ON_TIME[variable]) { digitalWrite(OUTPUT_BUTTONS[variable], OUTPUT_ON_STATE[variable]); }    //buttons on
         if (elapsed_time_ms == output_off_time[variable]) { digitalWrite(OUTPUT_BUTTONS[variable], output_off_state[variable]); }  //buttons_off
@@ -1510,56 +1515,36 @@ trial_number = trial_number + 1;
     if (mode == 0) {
       display_screen();
 
-
-
-
-
       current_button = 0;
-      if (digitalRead(CANCEL) == 0) { current_button = 1; }
-      if (digitalRead(LEFT) == 0) { current_button = 4; }
-      if (digitalRead(RIGHT) == 0) { current_button = 6; }
-      if (digitalRead(CONFIRM) == 0) { current_button = 5; }
 
-      if((current_button == 4) && (last_button == 1)){current_button = 11;save_mode = !save_mode;delay(300);}
-      if((current_button == 6) && (last_button == 1)){current_button = 11;only_one_test = !only_one_test;delay(300);}
-      if((current_button == 5) && (last_button == 1)){current_button = 11; fastest_slowest_mode = !fastest_slowest_mode;delay(300);}
-      
-      if ((digitalRead(CONFIRM) == 0) && (digitalRead(RIGHT) == 0)) { current_button = 10; }
-      
-
-      if ((current_button == 6) && (last_button == 4)) {
-        initial_cursor_position = cursor_position;
-        save_settings();
-      }
-
-      // turn_off_buttons();
-  if (cursor_position < 1) {
-    for (int variable = 0; variable < 15; variable++) {
+      // turn_off_buttons();    
+      if (cursor_position < 1) {
+      for (int variable = 0; variable < 15; variable++) {
       digitalWrite(OUTPUT_BUTTONS[variable], output_reset_state[variable]);
-    }}
+      }}
 
-
-  if (cursor_position > 0) {
-
-    for (int variable = 0; variable < 15; variable++) {
+      if (cursor_position > 0) {
+      for (int variable = 0; variable < 15; variable++) {
       if (output_off_time[variable] >= 0) { digitalWrite(OUTPUT_BUTTONS[variable], output_off_state[variable]); }
       if (output_off_time[variable] < 0) { digitalWrite(OUTPUT_BUTTONS[variable], OUTPUT_ON_STATE[variable]); }
       if (output_off_time[variable] < OUTPUT_ON_TIME[variable]) { digitalWrite(OUTPUT_BUTTONS[variable], OUTPUT_ON_STATE[variable]); }
-    }}
-
-
-if (Serial.available() > 0){
-  youvegotmail=Serial.read();
-  youvegotemail =  Serial.readStringUntil('\n');youvegotemail.trim();}
-
-if (SerialBT.available() > 0){
-  youvegotmail = SerialBT.read();
-  youvegotemail =  SerialBT.readStringUntil('\n');youvegotemail.trim();}
+      }}
 
 
 
 
-inbox();
+        if (Serial.available() > 0){
+        youvegotmail=Serial.read();
+        youvegotemail =  Serial.readStringUntil('\n');youvegotemail.trim();}
+
+        if (SerialBT.available() > 0){
+        youvegotmail = SerialBT.read();
+        youvegotemail =  SerialBT.readStringUntil('\n');youvegotemail.trim();}
+
+
+
+
+
 
 //////HTML LOOP
 
@@ -1639,14 +1624,14 @@ char c = client.read();
       client.println("  <summary>Click for results</summary>");            
       client.println("<p></p>");
 
-      client.println("<a href=\"/detailed\"><button>SHOW GRAPHICS</button></a>");
+      client.println("<a href=\"/detailed\"><button>SHOW GRAPHS</button></a>");
       client.println("<p></p>");
 
       for (int n = 0;n<TRIAL_MAX;n++){  
       client.println("<p>"+String(n) + " = " + String(PTmain_results[n])+"ms, "+String(PTsub_results[n])+"ms</p>");
 
       if (detailed_graphics == 1){
-      client.println("  <canvas id=\"canvas"+String(n)+"\" width=\""+String(REPORT_TIME)+"\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
+      client.println("  <canvas id=\"canvas"+String(n)+"\" width=\"255\" height=\"255\" style=\"border:1px solid black;\"></canvas>");
       // client.println("  <script>");
       // client.println("    var ctx"+String(n)+" = document.getElementById(\"canvas"+String(n)+"\").getContext(\"2d\");");
       // client.println("  </script>");
@@ -1677,14 +1662,14 @@ char c = client.read();
       client.println("    ctx"+String(raw_test)+".fillStyle = \"blue\";");
 
 
-      for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
+      for (int raw_x_coord = 0;raw_x_coord < 255; raw_x_coord ++){            
       int raw_deletion_point = raw_line.indexOf(',');
-      int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
+      int raw_y_coord = raw_line.substring(0,raw_deletion_point).toInt();
       raw_line = raw_line.substring(raw_deletion_point+1);
       //Serial.print(raw_x_coord);Serial.print(",");
       //Serial.println(raw_line);
-      if (raw_x_coord !=0){
-      client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
+      
+      client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}
       client.println("  </script>");   
 
       }
@@ -1700,12 +1685,12 @@ char c = client.read();
       client.println("    var ctx"+String(raw_test)+" = document.getElementById(\"canvas"+String(raw_test)+"\").getContext(\"2d\");");
       client.println("    ctx"+String(raw_test)+".fillStyle = \"red\";");
 
-      for (int raw_y_coord = 0;raw_y_coord < 255; raw_y_coord ++){            
+      for (int raw_x_coord = 0;raw_x_coord < 255; raw_x_coord ++){            
       int raw_deletion_point = raw_line.indexOf(',');
-      int raw_x_coord = raw_line.substring(0,raw_deletion_point).toInt();
+      int raw_y_coord = raw_line.substring(0,raw_deletion_point).toInt();
       raw_line = raw_line.substring(raw_deletion_point+1);
-      if (raw_x_coord !=0){
-      client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}}
+      
+      client.println("    ctx"+String(raw_test)+".fillRect("+String(raw_x_coord)+","+String(255-raw_y_coord)+", 1, 1);");}
       client.println("  </script>");   
 
       }
@@ -1834,7 +1819,7 @@ char c = client.read();
       youvegotemail = whole_url.substring(startPos+2, endPos);youvegotemail.trim();
       Serial.println((youvegotmail));
       Serial.println((youvegotemail));   
-      inbox();
+      
       client.println("HTTP/1.1 303 See Other");//will this be needed?
       client.println("Location: /");
       client.println("Connection: close");
@@ -1855,6 +1840,25 @@ Serial.println("Client disconnected.");
 
 /////HTML LOOP
 
+      inbox();
+
+
+      if (digitalRead(CANCEL) == 0) { current_button = 1; }
+      if (digitalRead(LEFT) == 0) { current_button = 4; }
+      if (digitalRead(RIGHT) == 0) { current_button = 6; }
+      if (digitalRead(CONFIRM) == 0) { current_button = 5; }
+
+      if((current_button == 4) && (last_button == 1)){current_button = 11;save_mode = !save_mode;delay(300);}
+      if((current_button == 6) && (last_button == 1)){current_button = 11;only_one_test = !only_one_test;delay(300);}
+      if((current_button == 5) && (last_button == 1)){current_button = 11; fastest_slowest_mode = !fastest_slowest_mode;delay(300);}
+      
+      if ((digitalRead(CONFIRM) == 0) && (digitalRead(RIGHT) == 0)) { current_button = 10; }
+      
+
+      if ((current_button == 6) && (last_button == 4)) {
+        initial_cursor_position = cursor_position;
+        save_settings();
+      }
  
 
 
@@ -1882,26 +1886,9 @@ Serial.println("Client disconnected.");
       if ((current_button == 5) &&(last_button ==0) && (cursor_position == 4)){calculate_mode = 1;}
       if ((current_button == 5) &&(last_button ==0) && (cursor_position == 9)){trial_number = TRIAL_MAX + 1;}
 
-      if ((current_button == 5) && (last_button == 0) && (cursor_position > 0) && (cursor_position < 10)) {
-        reset_OPT_values();
-        pinMode(RED_LED, OUTPUT);
-        pinMode(GREEN_LED, OUTPUT);
-        pinMode(BLUE_LED, OUTPUT);
-        digitalWrite(RED_LED, LOW);
-        digitalWrite(GREEN_LED, LOW);
-        digitalWrite(BLUE_LED, LOW);
-        time3 = 1 + micros() / 100;
-        if ((cursor_position >=1) && (cursor_position <=8) && (trial_number < TRIAL_MAX)){prepare_summary();}
-        mode = 1;}
 
 
-
-
-
-
-        if ((current_button == 5) && (last_button == 0) &&  (cursor_position == 10)){connect_sub_board();}
-
-
+      if ((current_button == 5) && (last_button == 0) &&  (cursor_position == 10)){connect_sub_board();}
       if ((current_button == 5) && (last_button == 0) && (cursor_position == -1)){mode = -1;last_button = 5;}
       if ((current_button == 5) && (last_button == 0) && (cursor_position == -11)) { mode = -11; }
       if ((current_button == 5) && (last_button == 0) && (cursor_position == -12)) { mode = -12; }
@@ -1910,6 +1897,19 @@ Serial.println("Client disconnected.");
       if ((current_button == 5) && (last_button == 0) && (cursor_position == -3)) { mode = -3; }
       if ((current_button == 5) && (last_button == 0) && (cursor_position == -4)) {mode = -4;last_button = 5;}
       if ((current_button == 5) && (last_button == 0) && (cursor_position == -6)) { mode = -6; }
+      if ((current_button == 5) && (last_button == 0) && (cursor_position > 0) && (cursor_position < 10)) {
+        reset_OPT_values();
+        pinMode(RED_LED, OUTPUT);
+        pinMode(GREEN_LED, OUTPUT);
+        pinMode(BLUE_LED, OUTPUT);
+        digitalWrite(RED_LED, LOW);
+        digitalWrite(GREEN_LED, LOW);
+        digitalWrite(BLUE_LED, LOW);        
+        if ((cursor_position >=1) && (cursor_position <=8) && (trial_number < TRIAL_MAX)){prepare_summary();}
+        time3 = 1 + micros() / 100;
+        mode = 1;}
+
+
     }
 
     last_button = current_button;
